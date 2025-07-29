@@ -1,0 +1,25 @@
+[project]
+name = "depths"
+version = "0.1.0"
+description = "Data Layer for AI"
+readme = "README.md"
+authors = [
+    { name = "Depths AI", email = "admin@depthsai.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "polars>=1.31.0",
+]
+
+[project.scripts]
+depths = "depths.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = ["depths/**/*.py", "README.md"]
+
+[tool.hatch.build.targets.wheel]
+packages=["depths"]
