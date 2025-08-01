@@ -32,37 +32,33 @@ def make_wrapper(original, handler, path):
         handler(path, args, kwargs, result)
         return result
     return wrapped
-    
-def openai_handle_chat_create(
-    path:str,
-    args: Tuple[Any],
-    kwargs: Dict[str, Any],
-    result: Any
-    )->None:
-    '''
-    Custom logging handler for `OpenAI()` `chat.completions.create` method
-    '''
-    # To be implemented
-    print(args)
-    print(kwargs)
 
-OPENAI_METHOD_REGISTRY: Dict[str, Callable] = {
-    "chat.completions.create": openai_handle_chat_create
-}
 
 class LoggedOpenAI:
     '''
     Logged OpenAI client
     '''
-    def __init__(self,*args,logger: Optional[DepthsLogger] = None, **kwargs):
-        self.client=OpenAI(*args, **kwargs)
-        self.logger=logger
+    def openai_handle_chat_create(
+            self,
+            path:str,
+            args: Tuple[Any],
+            kwargs: Dict[str, Any],
+            result: Any
+            )->None:
+            '''
+            Custom logging handler for `OpenAI()` `chat.completions.create` method
+            '''
+            result_dict=result.to_dict()
 
-        for path, handler in OPENAI_METHOD_REGISTRY.items():
-            original_func=recursive_getattr(self.client, path)
-            wrapped_func=make_wrapper(original_func, handler, path)
-            recursive_setattr(self.client, path, wrapped_func)
-    
+            if self.logger.llm_logging_config.store_input_text==False:
+                kwargs.pop("messages")
+            
+            if self.logger.llm_logging_config.store_output_text==False:
+                result_dict.pop("choices")
+            
+            print(kwargs)
+            print(result_dict)
+        
     def __getattr__(self, name: str):
         attr=getattr(self.client, name)
         if callable(attr):
@@ -71,3 +67,20 @@ class LoggedOpenAI:
                 return result
             return wrapper
         return attr
+
+    def __init__(self,*args,logger: Optional[DepthsLogger] = None, **kwargs):
+        self.client=OpenAI(*args, **kwargs)
+        if logger is None:
+            logger=DepthsLogger()
+        self.logger=logger
+
+        self.OPENAI_METHOD_REGISTRY: Dict[str, Callable] = {
+            "chat.completions.create": self.openai_handle_chat_create,
+        }
+
+        for path, handler in self.OPENAI_METHOD_REGISTRY.items():
+            original_func=recursive_getattr(self.client, path)
+            wrapped_func=make_wrapper(original_func, handler, path)
+            recursive_setattr(self.client, path, wrapped_func)
+    
+        

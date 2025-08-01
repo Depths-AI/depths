@@ -10,7 +10,7 @@ client=LoggedOpenAI(
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
     )
 
-response = client.chat.completions.create(
+chat = client.chat.completions.create(
     model=MODEL,
     messages=[
         {"role": "system", "content": "You are a helpful assistant."},
@@ -20,20 +20,3 @@ response = client.chat.completions.create(
         }
     ]
 )
-
-print(response.choices[0].message.content[:20])
-
-stream = client.chat.completions.create(
-    model=MODEL,
-    messages=[
-        {
-            "role": "user",
-            "content": "Say 'Depths AI' ten times",
-        },
-    ],
-    stream=True,
-)
-
-for chunk in stream:
-    if chunk.choices[0].delta.content is not None:
-        print(chunk.choices[0].delta.content, end="")
