@@ -1,10 +1,12 @@
 import pyarrow as pa
 from pyarrow import ipc
 import polars as pl
+from typing import List, Dict, Optional, Literal
 
 def write_per_row_stream_ipc(
     data:pl.DataFrame,
     path: str,
+    index_column_name: Optional[str]="row",
     index_path: Optional[str] = None,
 )-> pl.DataFrame:
 
@@ -26,7 +28,7 @@ def write_per_row_stream_ipc(
             end=sink.tell()
             length=end-start
 
-            entry={"row":i,"offset":start,"length":length}
+            entry={index_column_name:i,"offset":start,"length":length}
             index.append(entry)
     
     if index_path:
@@ -37,6 +39,7 @@ def write_per_row_stream_ipc(
 def write_batches_stream_ipc(
     batched_data: List[pl.DataFrame],
     path: str,
+    index_column_name: Optional[str]="batch",
     index_path: Optional[str] = None,
 )-> pl.DataFrame:
     
@@ -58,7 +61,7 @@ def write_batches_stream_ipc(
             end=sink.tell()
             length=end-start
 
-            entry={"batch":i,"offset":start,"length":length}
+            entry={index_column_name:i,"offset":start,"length":length}
             index.append(entry)
     
     if index_path:
@@ -68,12 +71,13 @@ def write_batches_stream_ipc(
 
 def read_row_from_file(
     path:str,
+    row_index:int,
     index: pl.DataFrame,
-    row_index:int
+    index_column_name: Optional[str]="row"
 )-> pl.DataFrame:
     
     entry=index.row(
-        by_predicate=(pl.col("row")==row_index),
+        by_predicate=(pl.col(index_column_name)==row_index),
         named=True
     )
 
@@ -91,12 +95,13 @@ def read_row_from_file(
 
 def read_batch_from_file(
     path:str,
+    batch_index:int,
     index: pl.DataFrame,
-    batch_index:int
+    index_column_name: Optional[str]="batch"
 )-> pl.DataFrame:
     
     entry=index.row(
-        by_predicate=(pl.col("batch")==batch_index),
+        by_predicate=(pl.col(index_column_name)==batch_index),
         named=True
     )
 
